@@ -1,0 +1,48 @@
+@import '../../styles/constants.scss';
+.grid-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 0;
+    padding: 40px 0 0 40px;
+    width: 53.33%;
+    min-width: 320px;
+    max-width: 640px;
+  }
+  
+  .row {
+    display: flex;
+    width: 100%;
+  }
+  
+  .node {
+    width: calc(100% / 20);
+    aspect-ratio: 1;
+    border: 1px solid #999;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .node-start {
+    background-color: green;
+  }
+  
+  .node-end {
+    background-color: red;
+  }
+  
+  .node-obstacle {
+    background-color: black;
+  }
+  
+  .node-visited {
+    background-color: blue;
+  }
+  
+  .node-next {
+    background-color: yellow;
+  }
+  
+  .node-current {
+    background-color: purple;
+  }
