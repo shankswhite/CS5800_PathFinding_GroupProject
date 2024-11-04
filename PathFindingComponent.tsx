@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import '../../styles/global.scss';
 import './PathFindingComponent.module.scss';
 import styles from './PathFindingComponent.module.scss';
 
-import axios from 'axios'; // Assuming you are using axios for API requests
+import axios from 'axios';
 
 const GRID_SIZE = 20;
 
