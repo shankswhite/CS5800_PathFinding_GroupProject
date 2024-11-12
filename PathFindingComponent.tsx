@@ -16,16 +16,16 @@ interface NodeType {
   distanceToEnd?: number;
 }
 
-const STATUS_COLORS = {
-  0: 'white',    // Empty
-  1: 'red',      // Start
-  2: 'green',    // End
-  3: 'orange',   // Visited
-  4: 'blue',     // Next
-  5: 'yellow',   // Final Path
-  6: 'gray',     // Obstacle
-  7: 'black',    // Block
-};
+// const STATUS_COLORS = {
+//   0: 'white',    // Empty
+//   1: 'red',      // Start
+//   2: 'green',    // End
+//   3: 'orange',   // Visited
+//   4: 'blue',     // Next
+//   5: 'yellow',   // Final Path
+//   6: 'gray',     // Obstacle
+//   7: 'black',    // Block
+// };
 
 function PathFindingComponent() {
   const [grid, setGrid] = useState(createInitialGrid());
