@@ -39,12 +39,12 @@
   - Auxiliary Status
 
     - 8, distanceToStart, double
-      - Calculated by coordinate
+      - Calculated by coordinate in front-end
 
     - 9, distanceToEnd, double
-      - Calculated by coordinate
+      - Calculated by coordinate in front-end
 
-- All grid status are represented as a number in the map array
+- **All grid status are represented as a number in the map array**
 
   
 
@@ -55,7 +55,7 @@
     - Session means the different communication windows established by each individual with the front-end server
   - Press any button
     - Button is for updating map, like emptyMap, regenerateMap, nextStep, chooseAlgorithm
-- Every session is independent, which means everyone sees the map (including grid status) differently.
+- Every session is independent, which means everyone sees their own map (including grid status).
 
 
 
@@ -63,16 +63,62 @@
 
 ### 1.2.1 emptyMap
 
-- Totally front-end
+- Totally Front-end
 - Just set every grid status to be 0
 
 ### 1.2.2 regenerateMap
 
-- 
+- Frond-end
+  - A button, Post/Get to/from Back - End
+    - request a new map and all infos (current path when traversing each node, shortest path)
+    - Paras: Algoirthm
+      - 0: Dijkstra
+      - 1: A star
+      - 2: Jump Point
+- Back-end
+  - Return a new 2darray when received request
+    - generateMap function
+    - Rest API
+  - Return shortest path and all infos each step.
+
+### 1.2.3 nextStep
+
+- Totally Front-end
+  - Traverse path and show
+
+### 1.2.4 chooseAlgorithm
+
+- Totally Front-end
+  - API request para When pressing regenerateMap button
 
 
 
+## 2. Data Structure
 
+#### 2.1 Grid Map
+
+- 2d array
+
+#### 2.2 Shortest Path
+
+- A array of pair<int, int>
+  - ex: {(0,0), (0,1), (1,1), (2,1)}
+
+#### 2.3 Infos each step
+
+- Array of pair of array of pair (or any other ordered mapping data structure)
+
+  - Ex: { 
+
+    ​	(0,0) : {(0,1),(1,0)},   # next step can be (0,1) or (1,0) at the point (0, 0)
+
+    ​	(0,1) : {(1,1), (0,2)},
+
+    ​	(1,1) : {(1,2), (2,1)},
+
+    ​	(2,1) : {(2,2), (3,1)}
+
+    ​	}
 
 ## 2. Algorithm
 
@@ -81,4 +127,3 @@
 ### 2.2 A Star
 
 ### 2.3 Jump Point Search
-
