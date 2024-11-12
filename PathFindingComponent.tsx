@@ -11,7 +11,7 @@ const GRID_SIZE = 20;
 interface NodeType {
   row: number;
   col: number;
-  status: number;  // 0-8 as per your specification
+  status: number;
   distanceToStart?: number;
   distanceToEnd?: number;
 }
