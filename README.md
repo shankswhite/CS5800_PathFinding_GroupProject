@@ -66,7 +66,7 @@
 - Totally Front-end
 - Just set every grid status to be 0
 
-### 1.2.2 regenerateMap
+### 1.2.2 regenerateMap ??who decide the obstacle
 
 - Frond-end
   - A button, Post/Get to/from Back - End
@@ -81,7 +81,7 @@
     - Rest API
   - Return shortest path and all infos each step.
 
-### 1.2.3 nextStep
+### 1.2.3 nextStep 
 
 - Totally Front-end
   - Traverse path and show
@@ -110,7 +110,7 @@
 
   - Ex: { 
 
-    ​	(0,0) : {(0,1),(1,0)},   # next step can be (0,1) or (1,0) at the point (0, 0)
+    ​	(0,0) : {(0,1),(1,0)},   # next step can be (0,1) or (1,0) at the point (0, 0) why??
 
     ​	(0,1) : {(1,1), (0,2)},
 
@@ -123,6 +123,7 @@
 - with front end
   - initialization(Grid Status, selectedAlgorithm)
   - getNext(a,b,choosedAlgorithm) -> {(0,1),(1,0)}
+  - regenerateMap() who decide the obstacle?
 - with Algorithm
   - initialization(Grid Status,choosedAlgorithm) -> Shortest Path(might be multiple) + Infos each step
 
