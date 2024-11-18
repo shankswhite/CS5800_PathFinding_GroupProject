@@ -121,7 +121,7 @@
     ​	}
 ## 3. Function and Structure
 - with front end
-  - initialization(Grid Status,choosedAlgorithm)
+  - initialization(Grid Status, selectedAlgorithm)
   - getNext(a,b,choosedAlgorithm) -> {(0,1),(1,0)}
 - with Algorithm
   - initialization(Grid Status,choosedAlgorithm) -> Shortest Path(might be multiple) + Infos each step
