@@ -10,7 +10,7 @@
 
 - Size: 20 x 20
 
-- Grid Status (Number, Name, Datatype, Color) :
+- Grid Status (Number, Name, Datatype, Color) : without weight of each edge??
 
   - 0, Empty
 
@@ -119,11 +119,17 @@
     ​	(2,1) : {(2,2), (3,1)}
 
     ​	}
+## 3. Function and Structure
+- with front end
+  - initialization(Grid Status,choosedAlgorithm)
+  - getNext(a,b,choosedAlgorithm) -> {(0,1),(1,0)}
+- with Algorithm
+  - initialization(Grid Status,choosedAlgorithm) -> Shortest Path + Infos each step
 
-## 2. Algorithm
+## 4. Algorithm
 
-### 2.1 Dijkstra
+### 4.1 Dijkstra
 
-### 2.2 A Star
+### 4.2 A Star
 
-### 2.3 Jump Point Search
+### 4.3 Jump Point Search
