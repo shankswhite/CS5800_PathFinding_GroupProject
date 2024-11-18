@@ -124,7 +124,7 @@
   - initialization(Grid Status,choosedAlgorithm)
   - getNext(a,b,choosedAlgorithm) -> {(0,1),(1,0)}
 - with Algorithm
-  - initialization(Grid Status,choosedAlgorithm) -> Shortest Path + Infos each step
+  - initialization(Grid Status,choosedAlgorithm) -> Shortest Path(might be multiple) + Infos each step
 
 ## 4. Algorithm
 
