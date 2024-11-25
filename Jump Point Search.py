@@ -10,147 +10,166 @@ def is_walkable(grid, x, y):
     """Check if a cell is walkable."""
     return 0 <= x < len(grid) and 0 <= y < len(grid[0]) and grid[x][y] == 1
 
-
 def jump(grid, x, y, dx, dy, end):
-    """
-    Attempts to jump in the given direction (dx, dy) until it hits a jump point or the goal.
-    """
-    nx, ny = x + dx, y + dy
-    if not is_walkable(grid, nx, ny):
-        return None  # Can't walk further in this direction
+    nx, ny = x, y
+    path = []  # Record intermediate points
 
-    if (nx, ny) == end:
-        return nx, ny  # Goal reached
+    while 0 <= nx < len(grid) and 0 <= ny < len(grid[0]):
+        nx += dx
+        ny += dy
 
-    # Check for forced neighbors
-    if dx != 0 and dy != 0:  # Diagonal movement
-        if is_walkable(grid, nx - dx, ny) and not is_walkable(grid, nx - dx, ny - dy):
-            return nx, ny
-        if is_walkable(grid, nx, ny - dy) and not is_walkable(grid, nx - dx, ny - dy):
-            return nx, ny
-    else:  # Horizontal or vertical movement
-        if dx != 0:  # Horizontal
-            if (is_walkable(grid, nx, ny - 1) and not is_walkable(grid, nx - dx, ny - 1)) or \
-                    (is_walkable(grid, nx, ny + 1) and not is_walkable(grid, nx - dx, ny + 1)):
-                return nx, ny
-        else:  # Vertical
-            if (is_walkable(grid, nx - 1, ny) and not is_walkable(grid, nx - 1, ny - dy)) or \
-                    (is_walkable(grid, nx + 1, ny) and not is_walkable(grid, nx + 1, ny - dy)):
-                return nx, ny
+        # Stop if blocked
+        if not is_walkable(grid, nx, ny):
+            return None, path
 
-    # Continue jumping
-    if dx != 0 and dy != 0:  # Diagonal movement
-        # Check for jump points in horizontal and vertical directions
-        if jump(grid, nx, ny, dx, 0, end) or jump(grid, nx, ny, 0, dy, end):
-            return nx, ny
+        # Add the current point to the path
+        path.append((nx, ny))
 
-    return jump(grid, nx, ny, dx, dy, end)
+        # Stop if goal is reached
+        if (nx, ny) == end:
+            return (nx, ny), path
 
+        # Check for forced neighbors
+        if dx != 0 and dy != 0:  # Diagonal movement
+            if (is_walkable(grid, nx - dx, ny) and not is_walkable(grid, nx - dx, ny - dy)) or \
+               (is_walkable(grid, nx, ny - dy) and not is_walkable(grid, nx - dx, ny - dy)):
+                return (nx, ny), path
+        elif dx != 0:  # Horizontal movement
+            if (is_walkable(grid, nx, ny + 1) and not is_walkable(grid, x, ny + 1)) or \
+               (is_walkable(grid, nx, ny - 1) and not is_walkable(grid, x, ny - 1)):
+                return (nx, ny), path
+        elif dy != 0:  # Vertical movement
+            if (is_walkable(grid, nx + 1, ny) and not is_walkable(grid, nx + 1, y)) or \
+               (is_walkable(grid, nx - 1, ny) and not is_walkable(grid, nx - 1, y)):
+                return (nx, ny), path
+
+    # Return None if no valid jump point is found
+    return None, path
 
 def find_neighbors(grid, x, y, parent):
-    """
-    Finds all neighbors for a given node, considering JPS rules.
-    """
     neighbors = []
-    if parent is not None:
+    rows, cols = len(grid), len(grid[0])
+
+    if parent:
         px, py = parent
-        # Direction of movement from parent to current node
-        dx, dy = (x - px, y - py)
+        dx, dy = x - px, y - py
 
         # Diagonal movement
         if dx != 0 and dy != 0:
-            if is_walkable(grid, x, y + dy):
-                neighbors.append((x, y + dy))
             if is_walkable(grid, x + dx, y):
                 neighbors.append((x + dx, y))
-            if is_walkable(grid, x + dx, y + dy):
-                neighbors.append((x + dx, y + dy))
-
-            if not is_walkable(grid, x - dx, y):
-                if is_walkable(grid, x - dx, y + dy):
-                    neighbors.append((x - dx, y + dy))
-            if not is_walkable(grid, x, y - dy):
-                if is_walkable(grid, x + dx, y - dy):
-                    neighbors.append((x + dx, y - dy))
-
-        # Horizontal/Vertical movement
-        elif dx == 0:  # Vertical
             if is_walkable(grid, x, y + dy):
                 neighbors.append((x, y + dy))
-            if not is_walkable(grid, x + 1, y):
-                neighbors.append((x + 1, y + dy))
-            if not is_walkable(grid, x - 1, y):
-                neighbors.append((x - 1, y + dy))
-
-        elif dy == 0:  # Horizontal
-            if is_walkable(grid, x + dx, y):
-                neighbors.append((x + dx, y))
-            if not is_walkable(grid, x, y + 1):
-                neighbors.append((x + dx, y + 1))
-            if not is_walkable(grid, x, y - 1):
-                neighbors.append((x + dx, y - 1))
-
-    else:  # No parent (start node), add all possible directions
-        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)]:
             if is_walkable(grid, x + dx, y + dy):
                 neighbors.append((x + dx, y + dy))
+        elif dx != 0:  # Horizontal
+            if is_walkable(grid, x + dx, y):
+                neighbors.append((x + dx, y))
+        elif dy != 0:  # Vertical
+            if is_walkable(grid, x, y + dy):
+                neighbors.append((x, y + dy))
+    else:  # If no parent, consider all directions
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, 1), (-1, 1), (1, -1)]:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < rows and 0 <= ny < cols and is_walkable(grid, nx, ny):
+                neighbors.append((nx, ny))
 
     return neighbors
 
-
-def reconstruct_path(came_from, current):
-    """Reconstruct the path from start to goal."""
-    path = [current]
-    while current in came_from:
-        current = came_from[current]
-        path.append(current)
-    return path[::-1]
-
-
 def jump_point_search(grid, start, end):
-    """
-    Jump Point Search algorithm for pathfinding in a 2D grid.
-
-    :param grid: 2D list where 1 represents walkable cells and 0 represents obstacles.
-    :param start: Tuple (x, y) for the start position.
-    :param end: Tuple (x, y) for the end position.
-    :return: List of tuples representing the shortest path, or None if no path is found.
-    """
     open_set = []
     heapq.heappush(open_set, (0, start))
-    came_from = {}
+    came_from = {}  # Track the path
     g_cost = {start: 0}
     f_cost = {start: heuristic(start, end)}
 
+    # Validate start and end points
+    if not is_walkable(grid, start[0], start[1]) or not is_walkable(grid, end[0], end[1]):
+        print(f"Invalid start or end point. Start: {start}, End: {end}")
+        return []  # Return empty list if start or end is invalid
+
     while open_set:
         _, current = heapq.heappop(open_set)
+        print(f"Visiting Node: {current}")
 
+        # Check if we've reached the goal
         if current == end:
+            print(f"Goal reached at {end}")
+            print(f"Final came_from: {came_from}")
             return reconstruct_path(came_from, current)
 
+        # Get neighbors of the current node
         neighbors = find_neighbors(grid, current[0], current[1], came_from.get(current))
+        print(f"Neighbors for {current}: {neighbors}")
+
         for neighbor in neighbors:
-            jump_point = jump(grid, current[0], current[1], neighbor[0] - current[0], neighbor[1] - current[1], end)
+            dx, dy = neighbor[0] - current[0], neighbor[1] - current[1]
+            print(f"Attempting jump from {current} towards {neighbor} in direction ({dx}, {dy})")
+
+            # Perform the jump in the given direction
+            jump_point, jump_path = jump(grid, current[0], current[1], dx, dy, end)
             if jump_point:
+                print(f"Jump successful to: {jump_point} via path {jump_path}")
+
+                # Add all intermediate points to came_from and g_cost
+                prev_point = current
+                for point in jump_path:
+                    if point not in g_cost:
+                        g_cost[point] = g_cost[prev_point] + heuristic(prev_point, point)
+                        came_from[point] = prev_point
+                        print(f"came_from[{point}] = {prev_point}")
+                        prev_point = point
+
+                # Update the final jump point
                 tentative_g_cost = g_cost[current] + heuristic(current, jump_point)
                 if jump_point not in g_cost or tentative_g_cost < g_cost[jump_point]:
                     g_cost[jump_point] = tentative_g_cost
                     f_cost[jump_point] = tentative_g_cost + heuristic(jump_point, end)
-                    came_from[jump_point] = current
+
+                    # Fix came_from for final jump point
+                    if jump_path:
+                        came_from[jump_point] = jump_path[-1]
+                    else:
+                        came_from[jump_point] = current
+
+                    print(f"came_from[{jump_point}] = {came_from[jump_point]}")  # Debugging
                     heapq.heappush(open_set, (f_cost[jump_point], jump_point))
+                    print(f"Added to open_set: {jump_point} with cost {f_cost[jump_point]}")
+                    print(f"Current open_set: {[node[1] for node in open_set]}")
 
-    return None  # No path found
+            else:
+                print(f"Jump to {neighbor} failed")
+
+    print("Open set is empty. No valid path found.")
+    return []  # Return empty list when no path is found                   came_from is not updating
 
 
-# Example Usage
-grid = [
-    [1, 1, 1, 1],
-    [1, 0, 0, 1],
-    [1, 1, 1, 1],
-    [1, 1, 1, 1]
-]
-start = (0, 0)
-end = (3, 3)
 
+
+def reconstruct_path(came_from, current):
+    path = [current]
+    print(f"Reconstructing path starting from {current}")  # Debugging
+    while current in came_from:
+        current = came_from[current]
+        path.append(current)
+    path.reverse()
+    print(f"Reconstructed Path: {path}")
+    return path
+
+
+
+
+def generate_empty_grid(rows, cols):
+    """
+    Generates an empty grid with all cells initialized to 1 (walkable).
+    """
+    grid = [[1 for _ in range(cols)] for _ in range(rows)]
+    print(f"Grid size: {len(grid)} x {len(grid[0])}")
+    return grid
+
+
+# Test the Algorithm
+grid = generate_empty_grid(5,5)
+start, end = (0, 0), (4, 4)
 path = jump_point_search(grid, start, end)
-print("Shortest Path:", path)
+print("\nShortest Path:", path)
