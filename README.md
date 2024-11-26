@@ -10,7 +10,7 @@
 
 - Size: 20 x 20
 
-- Grid Status (Number, Name, Datatype, Color) : without weight of each edge??
+- Grid Status (Number, Name, Datatype, Color) 
 
   - 0, Empty
 
@@ -101,16 +101,16 @@
 
 #### 2.2 Shortest Path
 
-- A array of pair<int, int>
+- An array of pair<int, int>
   - ex: {(0,0), (0,1), (1,1), (2,1)}
 
 #### 2.3 Infos each step
 
 - Array of pair of array of pair (or any other ordered mapping data structure)
 
-  - Ex: { 
+  - Ex: { Key是isVisited的点，value是isNext
 
-    ​	(0,0) : {(0,1),(1,0)},   # next step can be (0,1) or (1,0) at the point (0, 0) why??
+    ​	(0,0) : {(0,1),(1,0)},   
 
     ​	(0,1) : {(1,1), (0,2)},
 
@@ -119,13 +119,14 @@
     ​	(2,1) : {(2,2), (3,1)}
 
     ​	}
+  
 ## 3. Function and Structure
 - with front end
-  - initialization(Grid Status, selectedAlgorithm)
-  - getNext(a,b,choosedAlgorithm) -> {(0,1),(1,0)}
-  - regenerateMap() who decide the obstacle?
+  - getResult(selectedAlgorithm, 2darray()**注意这里是带着obstacle的) -> 2darray()
+  - generateMap() -> randomly生成不同的带有obstacle的20*20的2darray
 - with Algorithm
-  - initialization(Grid Status,choosedAlgorithm) -> Shortest Path(might be multiple) + Infos each step
+  - initialization(2darray,selectedAlgorithm) -> Shortest Path + Infos each step
+    - 起点和终点是默认（0，0）和（19，19）
 
 ## 4. Algorithm
 
