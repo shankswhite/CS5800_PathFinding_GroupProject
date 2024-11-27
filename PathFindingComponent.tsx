@@ -3,7 +3,7 @@ import '../../styles/global.scss';
 import './PathFindingComponent.module.scss';
 import styles from './PathFindingComponent.module.scss';
 
-import axios from 'axios';
+// import axios from 'axios';
 import { pathFindingService } from '../../services/pathFindingService';
 
 const GRID_SIZE = 20;
@@ -36,14 +36,35 @@ function PathFindingComponent() {
   const [obstacleCount, setObstacleCount] = useState<number>(20);
 
   useEffect(() => {
-    // Fetch initial grid state from backend
-    axios.get('https://your-backend-endpoint.com/get-grid').then(response => {
-      setGrid(response.data.grid);
-      setIsLoading(false);
-    }).catch(() => {
-      // If there's an error or no response, keep displaying the default grid
-      setIsLoading(false);
-    });
+    const initializeGrid = async () => {
+      try {
+        const { map, pathInformation } = await pathFindingService.generateNewMap(0, 20);
+        
+        if (map && map.length > 0) {
+          const processedMap = map.map((row: number[], rowIndex: number) =>
+            row.map((status: number, colIndex: number) => ({
+              row: rowIndex,
+              col: colIndex,
+              status: status, // Use the number directly as status
+              distanceToStart: Infinity,
+              distanceToEnd: Infinity
+            }))
+          );
+          
+          setGrid(processedMap);
+          setPathInfo(pathInformation);
+        } else {
+          setGrid(createInitialGrid());
+        }
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to initialize grid:', error);
+        setGrid(createInitialGrid());
+        setIsLoading(false);
+      }
+    };
+
+    initializeGrid();
   }, []);
 
   function createInitialGrid() {
@@ -57,6 +78,8 @@ function PathFindingComponent() {
           status: (row === 0 && col === 0) ? 1 : // Start
                   (row === GRID_SIZE - 1 && col === GRID_SIZE - 1) ? 2 : // End
                   0, // Empty
+          distanceToStart: Infinity,
+          distanceToEnd: Infinity,
         });
       }
       initialGrid.push(currentRow);
@@ -64,44 +87,97 @@ function PathFindingComponent() {
     return initialGrid;
   }
 
-  const emptyMap = () => {
-    const newGrid = grid.map(row =>
-      row.map(node => ({ ...node, status: 0 }))
-    );
-    setGrid(newGrid);
-    setCurrentStep(0);
-  };
-
   const regenerateMap = async () => {
     try {
-      const { map, pathInformation } = await pathFindingService.generateNewMap(algorithm, obstacleCount);
-      setGrid(map);
-      setPathInfo(pathInformation);
-      setCurrentStep(0);
+      const response = await pathFindingService.generateNewMap(algorithm, obstacleCount);
+      console.log('Backend response:', response);
+      
+      if (response.map && response.map.length > 0) {
+        const processedMap = response.map.map((row: number[], rowIndex: number) =>
+          row.map((status: number, colIndex: number) => ({
+            row: rowIndex,
+            col: colIndex,
+            status: status,
+            distanceToStart: Infinity,
+            distanceToEnd: Infinity
+          }))
+        );
+        
+        console.log('Processed map:', processedMap);
+        setGrid(processedMap);
+        setPathInfo(response.pathInformation);
+        setCurrentStep(0);
+      } else {
+        console.error('Invalid map data received');
+      }
     } catch (error) {
       console.error('Failed to regenerate map:', error);
     }
   };
 
   const nextStep = () => {
-    if (!pathInfo || currentStep >= pathInfo.length) return;
+    if (!pathInfo || currentStep >= pathInfo.length) {
+      console.log('No more steps available');
+      return;
+    }
     
-    const newGrid = [...grid];
-    const currentStepInfo = pathInfo[currentStep];
+    const currentLevelInfo = pathInfo[currentStep];
+    console.log('Processing level info:', currentLevelInfo);
     
-    // Update visited and next nodes based on currentStepInfo
-    Object.entries(currentStepInfo).forEach(([position, nextNodes]: [string, any]) => {
-      const [row, col] = position.split(',').map(Number);
-      newGrid[row][col].status = 3; // Mark as visited
-      nextNodes.forEach(([nextRow, nextCol]: number[]) => {
-        if (newGrid[nextRow][nextCol].status === 0) {
-          newGrid[nextRow][nextCol].status = 4; // Mark as next
+    const newGrid = grid.map(row => row.map(cell => ({...cell})));  // Deep copy
+    
+    // Process each position in the current level
+    Object.keys(currentLevelInfo).forEach(pos => {
+      const [row, col] = pos.split(',').map(Number);
+      
+      // Mark the current position as visited
+      if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
+        if (newGrid[row][col].status !== 1 && newGrid[row][col].status !== 2) {
+          newGrid[row][col].status = 3; // Visited
         }
-      });
+      }
+      
+      // Mark the neighbors as next to visit
+      const neighbors = currentLevelInfo[pos];
+      if (Array.isArray(neighbors)) {
+        neighbors.forEach(neighbor => {
+          const [nextRow, nextCol] = neighbor;
+          if (nextRow >= 0 && nextRow < GRID_SIZE && 
+              nextCol >= 0 && nextCol < GRID_SIZE && 
+              newGrid[nextRow][nextCol].status === 0) {
+            newGrid[nextRow][nextCol].status = 4; // Next to visit
+          }
+        });
+      }
     });
     
     setGrid(newGrid);
     setCurrentStep(prev => prev + 1);
+  };
+
+  const getNodeClassName = (node: NodeType) => {
+    const baseClass = styles.node;
+    
+    switch (node.status) {
+      case 0:
+        return `${baseClass} ${styles.nodeEmpty}`;
+      case 1:
+        return `${baseClass} ${styles.nodeStart}`;
+      case 2:
+        return `${baseClass} ${styles.nodeEnd}`;
+      case 3:
+        return `${baseClass} ${styles.nodeVisited}`;
+      case 4:
+        return `${baseClass} ${styles.nodeNext}`;
+      case 5:
+        return `${baseClass} ${styles.nodePath}`;
+      case 6:
+        return `${baseClass} ${styles.nodeObstacle}`;
+      case 7:
+        return `${baseClass} ${styles.nodeBlock}`;
+      default:
+        return `${baseClass} ${styles.nodeEmpty}`;
+    }
   };
 
   if (isLoading) {
@@ -110,57 +186,47 @@ function PathFindingComponent() {
 
   return (
     <div className={styles.container}>
-      <div className={styles['grid-container']}>
-        {grid.length > 0 && grid.map((row, rowIndex) => (
-          <div key={rowIndex} className={styles.row}>
-            {row.map((node, nodeIndex) => {
-              const extraClassName = node.status === 1
-                ? 'node-start'
-                : node.status === 2
-                ? 'node-end'
-                : node.status === 3
-                ? 'node-visited'
-                : node.status === 4
-                ? 'node-next'
-                : node.status === 6
-                ? 'node-obstacle'
-                : '';
-              return (
-                <div
-                  key={nodeIndex}
-                  className={`${styles.node} ${styles[extraClassName]}`}
-                ></div>
-              );
-            })}
+      <div className={styles.mainContent}>
+        <div className={styles['grid-container']}>
+          {grid.map((row, rowIndex) => {
+            console.log(`Row ${rowIndex}:`, row.map(node => node.status));
+            return (
+              <div key={rowIndex} className={styles.row}>
+                {row.map((node, nodeIndex) => (
+                  <div
+                    key={`${rowIndex}-${nodeIndex}`}
+                    className={getNodeClassName(node)}
+                  />
+                ))}
+              </div>
+            );
+          })}
+        </div>
+        
+        <div className={styles.controls}>
+          <button onClick={regenerateMap}>Generate New Map</button>
+          <button onClick={nextStep}>Next Step</button>
+          <div className={styles.inputGroup}>
+            <div className={styles.inputWrapper}>
+              <label htmlFor="obstacleCount">Obstacle Num:</label>
+              <input
+                id="obstacleCount"
+                type="number"
+                value={obstacleCount}
+                onChange={(e) => setObstacleCount(Math.max(0, Math.min(200, parseInt(e.target.value) || 0)))}
+                min="0"
+                max="200"
+              />
+            </div>
+            <select 
+              value={algorithm} 
+              onChange={(e) => setAlgorithm(Number(e.target.value))}
+            >
+              <option value={0}>Dijkstra</option>
+              <option value={1}>A*</option>
+              <option value={2}>JPS</option>
+            </select>
           </div>
-        ))}
-      </div>
-      
-      <div className={styles.controls}>
-        <button onClick={emptyMap}>Clear Map</button>
-        <button onClick={regenerateMap}>Generate New Map</button>
-        <button onClick={nextStep}>Next Step</button>
-        <div className={styles.inputGroup}>
-          <div className={styles.inputWrapper}>
-            <label htmlFor="obstacleCount">Obstacle Nums:</label>
-            <input
-              id="obstacleCount"
-              type="number"
-              value={obstacleCount}
-              onChange={(e) => setObstacleCount(Math.max(0, Math.min(200, parseInt(e.target.value) || 0)))}
-              min="0"
-              max="200"
-              className={styles.obstacleInput}
-            />
-          </div>
-          <select 
-            value={algorithm} 
-            onChange={(e) => setAlgorithm(Number(e.target.value))}
-          >
-            <option value={0}>Dijkstra</option>
-            <option value={1}>A*</option>
-            <option value={2}>JPS</option>
-          </select>
         </div>
       </div>
     </div>
