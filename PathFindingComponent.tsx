@@ -263,7 +263,6 @@ function PathFindingComponent() {
             }
         }
     } else {
-        // Original slower animation for Dijkstra
         for (const step of pathInfo) {
             if ('finalPath' in step) continue;
 
