@@ -220,53 +220,84 @@ function PathFindingComponent() {
     const newGrid = grid.map(row => row.map(cell => ({...cell})));
     let newVisitedCount = 0;
 
-    // First animate visited nodes step by step
-    for (const step of pathInfo) {
-      if ('finalPath' in step) continue;
-
-      Object.entries(step).forEach(([key, nodeInfo]: [string, any]) => {
-        Object.keys(nodeInfo).forEach(coordStr => {
-          const [row, col] = coordStr.split(',').map(Number);
-          if (newGrid[row][col].status !== 1 && 
-              newGrid[row][col].status !== 2 && 
-              newGrid[row][col].status !== 6) {
-            if (newGrid[row][col].status !== 3) {
-              newGrid[row][col].status = 3;
-              newVisitedCount++;
+    // Faster processing for A*
+    if (algorithm === 1) {  // A* algorithm
+        // Process visited nodes in chunks for smoother animation
+        const chunkSize = 5;  // Process 5 steps at once
+        for (let i = 0; i < pathInfo.length; i += chunkSize) {
+            const chunk = pathInfo.slice(i, i + chunkSize);
+            
+            for (const step of chunk) {
+                if ('finalPath' in step) continue;
+                
+                Object.entries(step).forEach(([_, nodeInfo]: [string, any]) => {
+                    Object.keys(nodeInfo).forEach(coordStr => {
+                        const [row, col] = coordStr.split(',').map(Number);
+                        if (newGrid[row][col].status !== 1 && 
+                            newGrid[row][col].status !== 2 && 
+                            newGrid[row][col].status !== 6) {
+                            if (newGrid[row][col].status !== 3) {
+                                newGrid[row][col].status = 3;
+                                newVisitedCount++;
+                            }
+                        }
+                    });
+                });
             }
-          }
-
-          const neighbors = nodeInfo[coordStr];
-          if (Array.isArray(neighbors)) {
-            neighbors.forEach(([nextRow, nextCol]) => {
-              if (nextRow >= 0 && nextRow < GRID_SIZE && 
-                  nextCol >= 0 && nextCol < GRID_SIZE) {
-                if (newGrid[nextRow][nextCol].status === 0) {
-                  newGrid[nextRow][nextCol].status = 3;
-                  newVisitedCount++;
-                }
-              }
-            });
-          }
-        });
-      });
-      
-      setGrid([...newGrid.map(row => [...row])]);
-      setVisitedCount(newVisitedCount);
-      await sleep(50);
-    }
-
-    // Finally animate the path
-    const finalPathStep = pathInfo[pathInfo.length - 1];
-    if (finalPathStep && finalPathStep.finalPath) {
-      for (const [row, col] of finalPathStep.finalPath) {
-        if (newGrid[row][col].status !== 1 && 
-            newGrid[row][col].status !== 2) {
-          newGrid[row][col].status = 5;
-          setGrid([...newGrid.map(row => [...row])]);
-          await sleep(50);
+            
+            setGrid([...newGrid]);
+            setVisitedCount(newVisitedCount);
+            await sleep(20);  // Shorter delay for A*
         }
-      }
+
+        // Animate the final path with a moderate speed
+        const finalPathStep = pathInfo[pathInfo.length - 1];
+        if (finalPathStep && finalPathStep.finalPath) {
+            for (const [row, col] of finalPathStep.finalPath) {
+                if (newGrid[row][col].status !== 1 && 
+                    newGrid[row][col].status !== 2) {
+                    newGrid[row][col].status = 5;
+                    setGrid([...newGrid]);
+                    await sleep(30);  // Moderate delay for path animation
+                }
+            }
+        }
+    } else {
+        // Original slower animation for Dijkstra
+        for (const step of pathInfo) {
+            if ('finalPath' in step) continue;
+
+            Object.entries(step).forEach(([_, nodeInfo]: [string, any]) => {
+                Object.keys(nodeInfo).forEach(coordStr => {
+                    const [row, col] = coordStr.split(',').map(Number);
+                    if (newGrid[row][col].status !== 1 && 
+                        newGrid[row][col].status !== 2 && 
+                        newGrid[row][col].status !== 6) {
+                        if (newGrid[row][col].status !== 3) {
+                            newGrid[row][col].status = 3;
+                            newVisitedCount++;
+                        }
+                    }
+                });
+            });
+            
+            setGrid([...newGrid.map(row => [...row])]);
+            setVisitedCount(newVisitedCount);
+            await sleep(50);  // Original delay for Dijkstra
+        }
+
+        // Animate the path
+        const finalPathStep = pathInfo[pathInfo.length - 1];
+        if (finalPathStep && finalPathStep.finalPath) {
+            for (const [row, col] of finalPathStep.finalPath) {
+                if (newGrid[row][col].status !== 1 && 
+                    newGrid[row][col].status !== 2) {
+                    newGrid[row][col].status = 5;
+                    setGrid([...newGrid.map(row => [...row])]);
+                    await sleep(50);
+                }
+            }
+        }
     }
 
     setCurrentStep(pathInfo.length);
