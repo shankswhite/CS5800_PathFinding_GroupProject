@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import '../../styles/global.scss';
 import './PathFindingComponent.module.scss';
 import styles from './PathFindingComponent.module.scss';
@@ -27,6 +27,12 @@ interface NodeType {
 //   7: 'black',    // Block
 // };
 
+// Add this function before the PathFindingComponent
+function convertToOrthogonalPath(path: number[][]): number[][] {
+  if (!path || path.length === 0) return [];
+  return path;
+}
+
 function PathFindingComponent() {
   const [grid, setGrid] = useState(createInitialGrid());
   const [isLoading, setIsLoading] = useState(true);
@@ -36,6 +42,18 @@ function PathFindingComponent() {
   const [obstacleCount, setObstacleCount] = useState<number>(GRID_SIZE);
   const [visitedCount, setVisitedCount] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [isMuted, setIsMuted] = useState(true);  // Start muted by default
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Update the useEffect for audio
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = 0.3;
+      audioRef.current.loop = true;
+      // Don't autoplay
+      audioRef.current.pause();
+    }
+  }, []); // Empty dependency array means this runs once on mount
 
   useEffect(() => {
     const initializeGrid = async () => {
@@ -93,6 +111,7 @@ function PathFindingComponent() {
     try {
       const response = await pathFindingService.generateNewMap(algorithm, obstacleCount);
       console.log('Backend response:', response);
+      console.log('PathInfo received:', response.pathInformation);
       
       if (response.map && response.map.length > 0) {
         const processedMap = response.map.map((row: number[], rowIndex: number) =>
@@ -105,13 +124,17 @@ function PathFindingComponent() {
           }))
         );
         
-        console.log('Processed map:', processedMap);
+        console.log('Initial map status counts:', 
+          processedMap.flat().reduce((acc: Record<number, number>, node: NodeType) => {
+            acc[node.status] = (acc[node.status] || 0) + 1;
+            return acc;
+          }, {})
+        );
+        
         setGrid(processedMap);
         setPathInfo(response.pathInformation);
         setCurrentStep(0);
         setVisitedCount(0);
-      } else {
-        console.error('Invalid map data received');
       }
     } catch (error) {
       console.error('Failed to regenerate map:', error);
@@ -122,58 +145,18 @@ function PathFindingComponent() {
 
   const nextStep = async () => {
     if (!pathInfo || currentStep >= pathInfo.length) {
-      try {
-        // Get new path info using current algorithm when previous steps are exhausted
-        const response = await pathFindingService.generateNewMap(algorithm, obstacleCount);
-        if (response.map && response.map.length > 0) {
-          const processedMap = response.map.map((row: number[], rowIndex: number) =>
-            row.map((status: number, colIndex: number) => ({
-              row: rowIndex,
-              col: colIndex,
-              status: status,
-              distanceToStart: Infinity,
-              distanceToEnd: Infinity
-            }))
-          );
-          
-          setGrid(processedMap);
-          setPathInfo(response.pathInformation);
-          setCurrentStep(0);
-          setVisitedCount(0);
-          return;
-        }
-      } catch (error) {
-        console.error('Failed to get new path:', error);
-      }
-      console.log('No more steps available');
       return;
     }
     
     const currentLevelInfo = pathInfo[currentStep];
     const newGrid = grid.map(row => row.map(cell => ({...cell})));
     let newVisitedCount = visitedCount;
-    
+
     // First check if this step contains the final path
     if (currentLevelInfo.finalPath) {
-      currentLevelInfo.finalPath.forEach(([row, col]: number[]) => {
-        if (newGrid[row][col].status !== 1 && newGrid[row][col].status !== 2) {
-          newGrid[row][col].status = 5; // Final path - will be green
-        }
-      });
-      setGrid(newGrid);
-      setCurrentStep(prev => prev + 1);
+      // ... existing finalPath code ...
       return;
     }
-
-    // Change previous "next to visit" nodes (status 4) to visited (status 3)
-    newGrid.forEach(row => {
-      row.forEach(node => {
-        if (node.status === 4) {
-          node.status = 3; // Change from blue to orange
-          // newVisitedCount++;
-        }
-      });
-    });
 
     // Process regular step
     Object.entries(currentLevelInfo).forEach(([_, nodeInfo]: [string, any]) => {
@@ -184,22 +167,29 @@ function PathFindingComponent() {
             row >= 0 && row < GRID_SIZE && 
             col >= 0 && col < GRID_SIZE) {
           
+          // First mark current node as visited
           if (newGrid[row][col].status !== 1 && 
               newGrid[row][col].status !== 2 && 
               newGrid[row][col].status !== 6) {
-            newGrid[row][col].status = 3; // Visited
-            newVisitedCount++;
+            if (newGrid[row][col].status === 4) {
+              newGrid[row][col].status = 3;
+              newVisitedCount++;  // Increment count when converting from next to visited
+            } else if (newGrid[row][col].status === 0) {
+              newGrid[row][col].status = 3;
+              newVisitedCount++;  // Increment count for newly visited nodes
+            }
           }
           
+          // Then process its neighbors
           const neighbors = nodeInfo[coordStr];
           if (Array.isArray(neighbors)) {
             neighbors.forEach(([nextRow, nextCol]) => {
               if (nextRow >= 0 && nextRow < GRID_SIZE && 
                   nextCol >= 0 && nextCol < GRID_SIZE) {
                 if (newGrid[nextRow][nextCol].status === 6) {
-                  newGrid[nextRow][nextCol].status = 7; // Blocked obstacle - will be red
+                  newGrid[nextRow][nextCol].status = 7;
                 } else if (newGrid[nextRow][nextCol].status === 0) {
-                  newGrid[nextRow][nextCol].status = 4; // Next to visit
+                  newGrid[nextRow][nextCol].status = 4;  // Set next nodes
                 }
               }
             });
@@ -209,99 +199,104 @@ function PathFindingComponent() {
     });
     
     setGrid(newGrid);
-    setVisitedCount(newVisitedCount);
+    setVisitedCount(newVisitedCount);  // Update the visited count
     setCurrentStep(prev => prev + 1);
   };
 
   const goToEnd = async () => {
     if (!pathInfo || pathInfo.length === 0) return;
     setIsProcessing(true);
-
-    const newGrid = grid.map(row => row.map(cell => ({...cell})));
-    let newVisitedCount = 0;
-
-    // Faster processing for A*
-    if (algorithm === 1) {  // A* algorithm
-        // Process visited nodes in chunks for smoother animation
-        const chunkSize = 5;  // Process 5 steps at once
-        for (let i = 0; i < pathInfo.length; i += chunkSize) {
-            const chunk = pathInfo.slice(i, i + chunkSize);
-            
-            for (const step of chunk) {
-                if ('finalPath' in step) continue;
-                
-                Object.entries(step).forEach(([_, nodeInfo]: [string, any]) => {
-                    Object.keys(nodeInfo).forEach(coordStr => {
-                        const [row, col] = coordStr.split(',').map(Number);
-                        if (newGrid[row][col].status !== 1 && 
-                            newGrid[row][col].status !== 2 && 
-                            newGrid[row][col].status !== 6) {
-                            if (newGrid[row][col].status !== 3) {
-                                newGrid[row][col].status = 3;
-                                newVisitedCount++;
-                            }
-                        }
-                    });
-                });
+  
+    const newGrid = grid.map(row => row.map(cell => ({ ...cell })));
+    let newVisitedCount = visitedCount;
+    const animationDelay = algorithm === 1 ? 2 : 50;
+  
+    // Process steps except the last one
+    for (let step = currentStep; step < pathInfo.length - 1; step++) {
+      const currentLevelInfo = pathInfo[step];
+      Object.entries(currentLevelInfo).forEach(([_, nodeInfo]: [string, any]) => {
+        Object.keys(nodeInfo).forEach(coordStr => {
+          const [row, col] = coordStr.split(',').map(Number);
+  
+          if (
+            !isNaN(row) &&
+            !isNaN(col) &&
+            row >= 0 &&
+            row < GRID_SIZE &&
+            col >= 0 &&
+            col < GRID_SIZE
+          ) {
+            if (
+              newGrid[row][col].status !== 1 &&
+              newGrid[row][col].status !== 2 &&
+              newGrid[row][col].status !== 6
+            ) {
+              if (newGrid[row][col].status === 4) {
+                newGrid[row][col].status = 3;
+                newVisitedCount++;
+              } else if (newGrid[row][col].status === 0) {
+                newGrid[row][col].status = 3;
+                newVisitedCount++;
+              }
             }
-            
-            setGrid([...newGrid]);
-            setVisitedCount(newVisitedCount);
-            await sleep(20);  // Shorter delay for A*
-        }
-
-        // Animate the final path with a moderate speed
-        const finalPathStep = pathInfo[pathInfo.length - 1];
-        if (finalPathStep && finalPathStep.finalPath) {
-            for (const [row, col] of finalPathStep.finalPath) {
-                if (newGrid[row][col].status !== 1 && 
-                    newGrid[row][col].status !== 2) {
-                    newGrid[row][col].status = 5;
-                    setGrid([...newGrid]);
-                    await sleep(30);  // Moderate delay for path animation
+  
+            const neighbors = nodeInfo[coordStr];
+            if (Array.isArray(neighbors)) {
+              neighbors.forEach(([nextRow, nextCol]) => {
+                if (
+                  nextRow >= 0 &&
+                  nextRow < GRID_SIZE &&
+                  nextCol >= 0 &&
+                  nextCol < GRID_SIZE
+                ) {
+                  if (newGrid[nextRow][nextCol].status === 6) {
+                    newGrid[nextRow][nextCol].status = 7;
+                  } else if (newGrid[nextRow][nextCol].status === 0) {
+                    newGrid[nextRow][nextCol].status = 4;
+                  }
                 }
+              });
             }
-        }
-    } else {
-        for (const step of pathInfo) {
-            if ('finalPath' in step) continue;
-
-            Object.entries(step).forEach(([_, nodeInfo]: [string, any]) => {
-                Object.keys(nodeInfo).forEach(coordStr => {
-                    const [row, col] = coordStr.split(',').map(Number);
-                    if (newGrid[row][col].status !== 1 && 
-                        newGrid[row][col].status !== 2 && 
-                        newGrid[row][col].status !== 6) {
-                        if (newGrid[row][col].status !== 3) {
-                            newGrid[row][col].status = 3;
-                            newVisitedCount++;
-                        }
-                    }
-                });
-            });
-            
-            setGrid([...newGrid.map(row => [...row])]);
-            setVisitedCount(newVisitedCount);
-            await sleep(50);  // Original delay for Dijkstra
-        }
-
-        // Animate the path
-        const finalPathStep = pathInfo[pathInfo.length - 1];
-        if (finalPathStep && finalPathStep.finalPath) {
-            for (const [row, col] of finalPathStep.finalPath) {
-                if (newGrid[row][col].status !== 1 && 
-                    newGrid[row][col].status !== 2) {
-                    newGrid[row][col].status = 5;
-                    setGrid([...newGrid.map(row => [...row])]);
-                    await sleep(50);
-                }
-            }
-        }
+          }
+        });
+      });
+  
+      setGrid([...newGrid.map(row => [...row])]);
+      setVisitedCount(newVisitedCount);
+      await sleep(animationDelay);
     }
+  
+    // Animate the final path
+    const finalPathStep = pathInfo[pathInfo.length - 1];
+    if (finalPathStep && finalPathStep.finalPath) {
+      // Clear previous 'next' nodes
+      newGrid.forEach(row => {
+        row.forEach(node => {
+          if (node.status === 4) {
+            node.status = 3;
+          }
+        });
+      });
 
+      const optimizedPath = convertToOrthogonalPath(finalPathStep.finalPath);
+      
+      for (const [row, col] of optimizedPath) {
+        // Only draw path on valid cells (not obstacles or blocks)
+        if (newGrid[row][col].status !== 6 && 
+            newGrid[row][col].status !== 7 && 
+            newGrid[row][col].status !== 1 && 
+            newGrid[row][col].status !== 2) {
+          newGrid[row][col].status = 5;
+          setGrid([...newGrid.map(row => [...row])]);
+          await sleep(animationDelay);
+        }
+      }
+    }
+  
     setCurrentStep(pathInfo.length);
     setIsProcessing(false);
   };
+  
 
   // Add useEffect to watch for state changes
   useEffect(() => {
@@ -348,24 +343,70 @@ function PathFindingComponent() {
     regenerateMap();
   }, [algorithm]); // Regenerate map whenever algorithm changes
 
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = 0.3;
+      audioRef.current.loop = true;
+      // Don't autoplay
+      audioRef.current.pause();
+    }
+  }, []);
+
+  const toggleMusic = () => {
+    if (audioRef.current) {
+      if (isMuted) {
+        audioRef.current.play().catch(error => {
+          console.log('Audio playback failed:', error);
+        });
+      } else {
+        audioRef.current.pause();
+      }
+      setIsMuted(!isMuted);
+    }
+  };
+
+  useEffect(() => {
+    console.log('PathInfo updated:', pathInfo);
+  }, [pathInfo]);
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
   return (
     <div className={styles.container}>
+      <audio 
+        ref={audioRef} 
+        src="/audio/algorithm-music.mp3" 
+        preload="auto"  // Preload the audio
+        loop  // Add loop attribute
+      />
+      
       <div className={styles.mainContent}>
         <div className={styles['grid-container']}>
           {grid.map((row, rowIndex) => {
             // console.log(`Row ${rowIndex}:`, row.map(node => node.status));
             return (
               <div key={rowIndex} className={styles.row}>
-                {row.map((node, nodeIndex) => (
-                  <div
-                    key={`${rowIndex}-${nodeIndex}`}
-                    className={getNodeClassName(node)}
-                  />
-                ))}
+                {row.map((node, nodeIndex) => {
+                  // Add inline styles for status 4 nodes
+                  const inlineStyle = node.status === 4 ? {
+                    backgroundColor: '#00f',
+                    border: '2px solid yellow',
+                    zIndex: 10,
+                    position: 'relative' as const,
+                    boxShadow: '0 0 10px blue'
+                  } : undefined;
+
+                  return (
+                    <div
+                      key={`${rowIndex}-${nodeIndex}`}
+                      className={getNodeClassName(node)}
+                      style={inlineStyle}
+                      onClick={() => console.log(`Clicked node at [${rowIndex},${nodeIndex}] with status: ${node.status}`)}
+                    />
+                  );
+                })}
               </div>
             );
           })}
@@ -382,7 +423,7 @@ function PathFindingComponent() {
               <option value={2}>JPS</option>
             </select>
           </div>
-          
+
           <div className={styles.inputGroup}>
             <div className={styles.inputWrapper}>
               <label htmlFor="obstacleCount">Obstacle Num:</label>
@@ -394,11 +435,25 @@ function PathFindingComponent() {
                 min="20"
                 max="200"
               />
+              <button 
+                className={styles.musicToggle}
+                onClick={toggleMusic}
+                aria-label="Toggle music"
+              >
+                {isMuted ? '🔇' : '🔊'}
+              </button>
             </div>
           </div>
 
           <button onClick={regenerateMap}>Generate New Map</button>
-          <button onClick={nextStep}>Next Step</button>
+          <button onClick={() => {
+            console.log('Next Step button clicked');
+            console.log('Current step:', currentStep);
+            console.log('PathInfo:', pathInfo);
+            nextStep();
+          }}>
+            Next Step
+          </button>
           <button 
             className={styles.endButton} 
             onClick={goToEnd}
