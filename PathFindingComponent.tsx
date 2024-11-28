@@ -176,7 +176,7 @@ function PathFindingComponent() {
     });
 
     // Process regular step
-    Object.entries(currentLevelInfo).forEach(([key, nodeInfo]: [string, any]) => {
+    Object.entries(currentLevelInfo).forEach(([_, nodeInfo]: [string, any]) => {
       Object.keys(nodeInfo).forEach(coordStr => {
         const [row, col] = coordStr.split(',').map(Number);
         
