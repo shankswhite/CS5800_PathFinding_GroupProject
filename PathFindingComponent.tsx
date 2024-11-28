@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import '../../styles/global.scss';
 import './PathFindingComponent.module.scss';
 import styles from './PathFindingComponent.module.scss';
+import GlowingButton from '../common/GlowingButton';
 
 // import axios from 'axios';
 import { pathFindingService } from '../../services/pathFindingService';
@@ -445,22 +446,32 @@ function PathFindingComponent() {
             </div>
           </div>
 
-          <button onClick={regenerateMap}>Generate New Map</button>
-          <button onClick={() => {
-            console.log('Next Step button clicked');
-            console.log('Current step:', currentStep);
-            console.log('PathInfo:', pathInfo);
-            nextStep();
-          }}>
+          <GlowingButton 
+            color="#ff6b6b"  // Matching your original red color
+            onClick={regenerateMap}
+          >
+            Generate New Map
+          </GlowingButton>
+
+          <GlowingButton 
+            color="#2ecc71"  // Matching your original green color
+            onClick={() => {
+              console.log('Next Step button clicked');
+              console.log('Current step:', currentStep);
+              console.log('PathInfo:', pathInfo);
+              nextStep();
+            }}
+          >
             Next Step
-          </button>
-          <button 
-            className={styles.endButton} 
+          </GlowingButton>
+
+          <GlowingButton 
+            color="#9c27b0"  // Matching your original purple color
             onClick={goToEnd}
             disabled={isProcessing}
           >
             Go to End
-          </button>
+          </GlowingButton>
           
           <div className={styles.stats}>
             Nodes Traversed: {visitedCount}
