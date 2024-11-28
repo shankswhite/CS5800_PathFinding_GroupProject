@@ -6,7 +6,7 @@ import styles from './PathFindingComponent.module.scss';
 // import axios from 'axios';
 import { pathFindingService } from '../../services/pathFindingService';
 
-const GRID_SIZE = 20;
+const GRID_SIZE = 50;
 
 interface NodeType {
   row: number;
@@ -33,14 +33,14 @@ function PathFindingComponent() {
   const [algorithm, setAlgorithm] = useState<number>(0); // 0: Dijkstra, 1: A*, 2: JPS
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [pathInfo, setPathInfo] = useState<any>(null);
-  const [obstacleCount, setObstacleCount] = useState<number>(20);
+  const [obstacleCount, setObstacleCount] = useState<number>(GRID_SIZE);
   const [visitedCount, setVisitedCount] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
   useEffect(() => {
     const initializeGrid = async () => {
       try {
-        const { map, pathInformation } = await pathFindingService.generateNewMap(0, 20);
+        const { map, pathInformation } = await pathFindingService.generateNewMap(0, GRID_SIZE);
         
         if (map && map.length > 0) {
           const processedMap = map.map((row: number[], rowIndex: number) =>
@@ -120,8 +120,31 @@ function PathFindingComponent() {
 
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  const nextStep = () => {
+  const nextStep = async () => {
     if (!pathInfo || currentStep >= pathInfo.length) {
+      try {
+        // Get new path info using current algorithm when previous steps are exhausted
+        const response = await pathFindingService.generateNewMap(algorithm, obstacleCount);
+        if (response.map && response.map.length > 0) {
+          const processedMap = response.map.map((row: number[], rowIndex: number) =>
+            row.map((status: number, colIndex: number) => ({
+              row: rowIndex,
+              col: colIndex,
+              status: status,
+              distanceToStart: Infinity,
+              distanceToEnd: Infinity
+            }))
+          );
+          
+          setGrid(processedMap);
+          setPathInfo(response.pathInformation);
+          setCurrentStep(0);
+          setVisitedCount(0);
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to get new path:', error);
+      }
       console.log('No more steps available');
       return;
     }
@@ -291,6 +314,10 @@ function PathFindingComponent() {
     }
   };
 
+  useEffect(() => {
+    regenerateMap();
+  }, [algorithm]); // Regenerate map whenever algorithm changes
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -333,8 +360,8 @@ function PathFindingComponent() {
                 id="obstacleCount"
                 type="number"
                 value={obstacleCount}
-                onChange={(e) => setObstacleCount(Math.max(0, Math.min(200, parseInt(e.target.value) || 0)))}
-                min="0"
+                onChange={(e) => setObstacleCount(Math.max(20, Math.min(200, parseInt(e.target.value) || 20)))}
+                min="20"
                 max="200"
               />
             </div>
