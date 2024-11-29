@@ -5,6 +5,14 @@
   padding: 2rem 0 0 2rem;
   width: 100%;
   height: 100%;
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.5rem;
+  }
 }
 
 .mainContent {
@@ -14,6 +22,11 @@
   align-items: flex-start;
   width: 100%;
   justify-content: flex-start;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: center;
+  }
 }
 
 .algorithmSelect {
@@ -116,14 +129,35 @@
   flex-direction: column;
   align-items: center;
   gap: 1rem;
-  margin-left: 4rem;
+  margin-left: 2rem;
   margin-top: 5rem;
   position: relative;
+  width: 100%;
+
+  @media (max-width: 768px) {
+    margin-left: 1rem;
+    margin-top: 3rem;
+    gap: 0.8rem;
+  }
+
+  @media (max-width: 480px) {
+    margin-left: 0.5rem;
+    margin-top: 2rem;
+    gap: 0.5rem;
+  }
 
   .selectWrapper, .inputGroup {
-    width: calc(56% * 1.3);
+    width: 100%;
     max-width: calc(210px * 1.3);
-    min-width: calc(140px * 1.3);
+    min-width: 120px;
+
+    @media (max-width: 768px) {
+      min-width: 100px;
+    }
+
+    @media (max-width: 480px) {
+      min-width: 90px;
+    }
   }
 
   select {
