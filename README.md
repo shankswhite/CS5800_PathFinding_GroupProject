@@ -122,12 +122,12 @@
   
 ## 3. Function and Structure
 - with front end
-  - getResult(selectedAlgorithm, 2darray()**注意这里是带着obstacle的) -> 2darray()
-  - generateMap() -> randomly生成不同的带有obstacle的20*20的2darray
+  - getResult(selectedAlgorithm, 2darray()**with obstacle) -> 2darray()
+  - generateMap() -> randomly generate different 20*20 2d array with obstacle
 - with Algorithm
   - initialization(2darray,selectedAlgorithm) -> Shortest Path + Infos each step
-    - 起点和终点是默认（0，0）和（19，19）
-
+    - star point and end point are default as（0，0）and （19，19）
+    - 
 ## 4. Algorithm
 
 ### 4.1 Dijkstra
