@@ -108,7 +108,7 @@
 
 - Array of pair of array of pair (or any other ordered mapping data structure)
 
-  - Ex: { Key是isVisited的点，value是isNext
+  - Ex: { Key is isVisited，value is isNext
 
     ​	(0,0) : {(0,1),(1,0)},   
 
@@ -127,7 +127,6 @@
 - with Algorithm
   - initialization(2darray,selectedAlgorithm) -> Shortest Path + Infos each step
     - star point and end point are default as（0，0）and （19，19）
-    - 
 ## 4. Algorithm
 
 ### 4.1 Dijkstra
